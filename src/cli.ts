@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { version } from '../package.json'
 import { registerOpenCommand } from './commands/open'
+import { registerUpdateCommand } from './commands/update'
 
 export function buildProgram(): Command {
   const program = new Command()
@@ -11,6 +12,7 @@ export function buildProgram(): Command {
     .version(version)
 
   registerOpenCommand(program)
+  registerUpdateCommand(program)
 
   return program
 }

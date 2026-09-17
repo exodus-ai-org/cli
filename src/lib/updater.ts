@@ -1,6 +1,8 @@
 import { version as currentVersion } from '../../package.json'
 import { DIST_CHANNEL } from './dist-channel'
 
+export { DIST_CHANNEL }
+
 export const DEFAULT_NPM_REGISTRY = 'https://registry.npmjs.org'
 export const DEFAULT_GITHUB_API = 'https://api.github.com/repos/exodus-ai-org/exodus-cli'
 
