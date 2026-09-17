@@ -1,8 +1,19 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 
 const LOCK_FILE = '.lock.json'
+
+function resolveSafeFilePath(skillDir: string, filePath: string): string {
+  const resolvedSkillDir = resolve(skillDir)
+  const targetPath = resolve(skillDir, filePath)
+  const isInside =
+    targetPath === resolvedSkillDir || targetPath.startsWith(resolvedSkillDir + sep)
+  if (!isInside) {
+    throw new Error(`Refusing to write outside the skill directory: ${filePath}`)
+  }
+  return targetPath
+}
 
 export interface InstalledSkill {
   slug: string
@@ -65,7 +76,7 @@ export async function installSkill(
   await mkdir(skillDir, { recursive: true })
 
   for (const file of detail.files) {
-    const targetPath = join(skillDir, file.path)
+    const targetPath = resolveSafeFilePath(skillDir, file.path)
     await mkdir(join(targetPath, '..'), { recursive: true })
     await writeFile(targetPath, file.contents, 'utf-8')
   }

@@ -80,6 +80,38 @@ describe('installSkill', () => {
     const lock = await readLockfile(skillsDir)
     expect(lock.skills['find-skills']?.displayName).toBe('Find Skills')
   })
+
+  test('rejects a file path that traverses outside the skill directory', async () => {
+    const maliciousDetail: SkillDetail = {
+      ...sampleDetail,
+      files: [{ path: '../../../../etc/evil-file', contents: 'pwned' }]
+    }
+    await expect(installSkill(skillsDir, maliciousDetail)).rejects.toThrow(
+      'Refusing to write outside the skill directory'
+    )
+  })
+
+  test('rejects an absolute file path', async () => {
+    const maliciousDetail: SkillDetail = {
+      ...sampleDetail,
+      files: [{ path: '/etc/evil-file', contents: 'pwned' }]
+    }
+    await expect(installSkill(skillsDir, maliciousDetail)).rejects.toThrow(
+      'Refusing to write outside the skill directory'
+    )
+  })
+
+  test('does not write any file to disk outside skillsDir when rejecting', async () => {
+    const maliciousDetail: SkillDetail = {
+      ...sampleDetail,
+      files: [{ path: '../../outside-file', contents: 'pwned' }]
+    }
+    await expect(installSkill(skillsDir, maliciousDetail)).rejects.toThrow()
+    // the escape target must not exist one level above the temp skillsDir
+    const { existsSync: fileExists } = await import('node:fs')
+    const { dirname, join: pathJoin } = await import('node:path')
+    expect(fileExists(pathJoin(dirname(skillsDir), 'outside-file'))).toBe(false)
+  })
 })
 
 describe('uninstallSkill', () => {
