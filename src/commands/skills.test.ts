@@ -1,0 +1,78 @@
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+import * as client from '../lib/skills-sh-client'
+import * as store from '../lib/skills-store'
+import {
+  runSkillsInstall,
+  runSkillsList,
+  runSkillsSearch,
+  runSkillsUninstall
+} from './skills'
+
+let skillsDir: string
+
+beforeEach(async () => {
+  skillsDir = await mkdtemp(join(tmpdir(), 'exodus-cli-skills-cmd-'))
+})
+
+afterEach(async () => {
+  await rm(skillsDir, { recursive: true, force: true })
+})
+
+describe('runSkillsSearch', () => {
+  test('returns the data array from the client', async () => {
+    const spy = spyOn(client, 'searchSkills').mockResolvedValue({
+      data: [
+        {
+          id: 'expo/skills/react-native',
+          slug: 'react-native',
+          name: 'React Native',
+          source: 'expo/skills',
+          installs: 3842,
+          sourceType: 'github',
+          installUrl: 'https://github.com/expo/skills',
+          url: 'https://skills.sh/expo/skills/react-native'
+        }
+      ],
+      query: 'react native',
+      searchType: 'semantic',
+      count: 1,
+      durationMs: 100
+    })
+    const results = await runSkillsSearch('react native', { json: true })
+    expect(results).toHaveLength(1)
+    expect(results[0]?.slug).toBe('react-native')
+    spy.mockRestore()
+  })
+})
+
+describe('runSkillsInstall + runSkillsList + runSkillsUninstall', () => {
+  test('install writes to the given skills dir and list/uninstall reflect it', async () => {
+    const detailSpy = spyOn(client, 'getSkillDetail').mockResolvedValue({
+      id: 'vercel-labs/skills/find-skills',
+      source: 'vercel-labs/skills',
+      slug: 'find-skills',
+      installs: 1,
+      hash: 'deadbeefcafefeed',
+      files: [{ path: 'SKILL.md', contents: '---\nname: Find Skills\n---' }]
+    })
+
+    const installed = await runSkillsInstall('vercel-labs/skills/find-skills', {
+      json: true,
+      skillsDir
+    } as never)
+    expect(installed.slug).toBe('find-skills')
+
+    const listed = await runSkillsList({ json: true, skillsDir } as never)
+    expect(listed).toHaveLength(1)
+
+    await runSkillsUninstall('find-skills', { json: true, skillsDir } as never)
+    const afterUninstall = await runSkillsList({ json: true, skillsDir } as never)
+    expect(afterUninstall).toHaveLength(0)
+
+    detailSpy.mockRestore()
+  })
+})

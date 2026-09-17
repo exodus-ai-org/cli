@@ -2,6 +2,7 @@ import { Command } from 'commander'
 
 import { version } from '../package.json'
 import { registerOpenCommand } from './commands/open'
+import { registerSkillsCommand } from './commands/skills'
 import { registerUpdateCommand } from './commands/update'
 
 export function buildProgram(): Command {
@@ -13,6 +14,7 @@ export function buildProgram(): Command {
 
   registerOpenCommand(program)
   registerUpdateCommand(program)
+  registerSkillsCommand(program)
 
   return program
 }
