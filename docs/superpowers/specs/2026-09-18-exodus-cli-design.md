@@ -131,7 +131,7 @@ of that migration.
                                    │  src/lib/open-app.ts          │
                                    └──────────────┬────────────────┘
                                                    ▼
-                        skills.sh-bff (https://skillsmd-bff.vercel.app)
+                        skills.sh-bff (https://skills-md.yancey.app)
                         ~/.exodus/skills/<slug>/ + ~/.exodus/skills/.lock.json
                         npm registry / GitHub Releases API
 ```
@@ -144,7 +144,7 @@ of that migration.
   `electron` — this CLI can't do that, and doesn't need to).
 - **`skills-sh-client.ts`** — thin fetch wrapper around
   `EXODUS_SKILLS_BFF_URL` (env var, default
-  `https://skillsmd-bff.vercel.app`): `listSkills({view, page, perPage})`,
+  `https://skills-md.yancey.app`): `listSkills({view, page, perPage})`,
   `searchSkills(q)`, `getSkillDetail(source, skill)`, `getSkillAudit(source,
   skill)`. Non-2xx responses throw a typed `SkillsApiError(status,
   message)` built from the API's `{error, message}` body.

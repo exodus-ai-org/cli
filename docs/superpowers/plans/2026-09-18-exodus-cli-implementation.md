@@ -15,7 +15,7 @@
 - Bin command is `exodus` (package name stays `exodus-cli`).
 - Skills install to `~/.exodus/skills/<slug>/` with a `.lock.json` lockfile in the exact shape `universal-client`'s `skills-manager.ts` already uses (`{ skills: Record<slug, { displayName, version, isActive, installPath, installedAt, source? }>> }`), so a skill installed via this CLI is immediately usable by the desktop app.
 - skills.sh has no per-skill semver — the lockfile's `version` field stores the skill's content `hash`, truncated to 12 characters.
-- All skills.sh calls go through the already-deployed BFF at `https://skillsmd-bff.vercel.app` (no auth header needed — the BFF injects the Vercel OIDC token server-side). Default base URL is overridable via the `EXODUS_SKILLS_BFF_URL` env var.
+- All skills.sh calls go through the already-deployed BFF at `https://skills-md.yancey.app` (custom domain for the `skills.sh-bff` Vercel project; no auth header needed — the BFF injects the Vercel OIDC token server-side). Default base URL is overridable via the `EXODUS_SKILLS_BFF_URL` env var.
 - No Commander file or Ink component may call `fetch`/`fs` directly — only `src/lib/*` does. Command files and TUI screens only call into `src/lib/*`.
 - ClawHub is not supported. No generic multi-registry abstraction is built — `skills-sh-client.ts` is the only registry client, isolated behind its own module boundary for a future second source.
 - npm channel assumes `bun` is on the end user's `PATH` (matches this org's Bun-first convention — see `CLAUDE.md`). Users without Bun are pointed at the compiled-binary GitHub Release instead.
@@ -505,7 +505,7 @@ git commit -m "feat: add local skills store (install/uninstall/toggle/list)"
 **Interfaces:**
 - Consumes: nothing beyond builtins
 - Produces:
-  - `DEFAULT_BFF_BASE_URL = 'https://skillsmd-bff.vercel.app'`
+  - `DEFAULT_BFF_BASE_URL = 'https://skills-md.yancey.app'`, overridable per-call by the `baseUrl` param (tests use this) and by the `EXODUS_SKILLS_BFF_URL` env var when no explicit `baseUrl` is passed
   - `interface SkillListItem { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl: string; url: string }`
   - `interface SkillListResponse { data: SkillListItem[]; pagination: { page: number; perPage: number; total: number; hasMore: boolean } }`
   - `interface SkillSearchResponse { data: SkillListItem[]; query: string; searchType: 'fuzzy' | 'semantic'; count: number; durationMs: number }`
@@ -654,7 +654,11 @@ Create `src/lib/skills-sh-client.ts`:
 ```ts
 import type { SkillDetail } from './skills-store'
 
-export const DEFAULT_BFF_BASE_URL = 'https://skillsmd-bff.vercel.app'
+export const DEFAULT_BFF_BASE_URL = 'https://skills-md.yancey.app'
+
+function resolveBaseUrl(explicit?: string): string {
+  return explicit ?? process.env.EXODUS_SKILLS_BFF_URL ?? DEFAULT_BFF_BASE_URL
+}
 
 export interface SkillListItem {
   id: string
@@ -720,9 +724,9 @@ async function request<T>(url: URL): Promise<T> {
 
 export async function listSkills(
   opts: { view?: 'all-time' | 'trending' | 'hot'; page?: number; perPage?: number } = {},
-  baseUrl: string = DEFAULT_BFF_BASE_URL
+  baseUrl?: string
 ): Promise<SkillListResponse> {
-  const url = new URL('/api/v1/skills', baseUrl)
+  const url = new URL('/api/v1/skills', resolveBaseUrl(baseUrl))
   if (opts.view) url.searchParams.set('view', opts.view)
   if (opts.page !== undefined) url.searchParams.set('page', String(opts.page))
   if (opts.perPage !== undefined) url.searchParams.set('per_page', String(opts.perPage))
@@ -732,9 +736,9 @@ export async function listSkills(
 export async function searchSkills(
   query: string,
   opts: { owner?: string; limit?: number } = {},
-  baseUrl: string = DEFAULT_BFF_BASE_URL
+  baseUrl?: string
 ): Promise<SkillSearchResponse> {
-  const url = new URL('/api/v1/skills/search', baseUrl)
+  const url = new URL('/api/v1/skills/search', resolveBaseUrl(baseUrl))
   url.searchParams.set('q', query)
   if (opts.owner) url.searchParams.set('owner', opts.owner)
   if (opts.limit !== undefined) url.searchParams.set('limit', String(opts.limit))
@@ -743,17 +747,17 @@ export async function searchSkills(
 
 export async function getSkillDetail(
   id: string,
-  baseUrl: string = DEFAULT_BFF_BASE_URL
+  baseUrl?: string
 ): Promise<SkillDetail> {
-  const url = new URL(`/api/v1/skills/${id}`, baseUrl)
+  const url = new URL(`/api/v1/skills/${id}`, resolveBaseUrl(baseUrl))
   return request<SkillDetail>(url)
 }
 
 export async function getSkillAudit(
   id: string,
-  baseUrl: string = DEFAULT_BFF_BASE_URL
+  baseUrl?: string
 ): Promise<SkillAuditResponse | null> {
-  const url = new URL(`/api/v1/skills/audit/${id}`, baseUrl)
+  const url = new URL(`/api/v1/skills/audit/${id}`, resolveBaseUrl(baseUrl))
   try {
     return await request<SkillAuditResponse>(url)
   } catch (err) {
