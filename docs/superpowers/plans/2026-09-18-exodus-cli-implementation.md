@@ -2064,7 +2064,7 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
       <FooterHint
         hints={[
           { key: '↑/↓', label: 'move' },
-          { key: 'Esc', label: 'go back' }
+          { key: 'Esc', label: 'quit' }
         ]}
       />
     </Box>
@@ -2394,7 +2394,7 @@ Expected: FAIL — `Cannot find module './app'`
 Create `src/tui/app.tsx`:
 
 ```tsx
-import { Box, Text, useInput } from 'ink'
+import { Box, Text, useApp, useInput } from 'ink'
 import React, { useState } from 'react'
 
 import { getSkillsDir } from '../lib/paths'
@@ -2408,11 +2408,14 @@ type Tab = 'discover' | 'installed'
 export function App({ skillsDir = getSkillsDir() }: { skillsDir?: string }) {
   const [tab, setTab] = useState<Tab>('discover')
   const [selected, setSelected] = useState<SkillListItem | null>(null)
+  const { exit } = useApp()
 
   useInput((_input, key) => {
     if (selected) return // detail screen owns input while open
     if (key.tab) {
       setTab((t) => (t === 'discover' ? 'installed' : 'discover'))
+    } else if (key.escape) {
+      exit()
     }
   })
 
