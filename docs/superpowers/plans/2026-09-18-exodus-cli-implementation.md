@@ -2638,15 +2638,17 @@ Create `scripts/build-binaries.sh`:
 
 ```bash
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
 DIST_CHANNEL_FILE="src/lib/dist-channel.ts"
-ORIGINAL_CONTENT="$(cat "$DIST_CHANNEL_FILE")"
+DIST_CHANNEL_BACKUP="$(mktemp)"
+cp "$DIST_CHANNEL_FILE" "$DIST_CHANNEL_BACKUP"
 
 restore() {
-  printf '%s' "$ORIGINAL_CONTENT" > "$DIST_CHANNEL_FILE"
+  cp "$DIST_CHANNEL_BACKUP" "$DIST_CHANNEL_FILE"
+  rm -f "$DIST_CHANNEL_BACKUP"
 }
 trap restore EXIT
 
@@ -2665,17 +2667,33 @@ declare -A TARGETS=(
   [exodus-windows-x64.exe]=bun-windows-x64
 )
 
+failed=()
 for name in "${!TARGETS[@]}"; do
   target="${TARGETS[$name]}"
   echo "Building $name ($target)..."
-  bun build --compile --target="$target" --outfile "release-binaries/$name" ./index.ts
+  if ! bun build --compile --target="$target" --outfile "release-binaries/$name" ./index.ts; then
+    echo "FAILED: $name" >&2
+    failed+=("$name")
+  fi
 done
 
 echo "Built:"
 ls -la release-binaries
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "The following targets failed to build: ${failed[*]}" >&2
+  exit 1
+fi
 ```
 
+Two things worth calling out about this script:
+
+- **Backup via a temp-file copy, not a captured string.** An earlier draft captured the original file's content with `ORIGINAL_CONTENT="$(cat ...)"` and rewrote it with `printf '%s' "$ORIGINAL_CONTENT"` — command substitution strips trailing newlines, so every run silently dropped `dist-channel.ts`'s trailing newline, leaving a spurious one-line git diff after every build. Copying the file itself sidesteps the whole class of quoting/newline problems.
+- **`set -e` removed, failures collected instead.** With `-e`, one target failing (e.g. a transient network hiccup fetching a cross-compile toolchain) would abort the loop immediately, silently skipping every target that hadn't run yet. The script now attempts all 5 unconditionally and only exits non-zero at the end if any failed — a transient failure on one target no longer costs you the other four.
+
 The asset names here (`exodus-darwin-arm64`, `exodus-windows-x64.exe`, etc.) must match exactly what `pickReleaseAssetName()` in `src/lib/updater.ts` (Task 6) computes — both were written against the same convention; if either changes, the other must change with it.
+
+Also add `release-binaries` to `.gitignore` (under the existing "# output" section, alongside `dist`) — these are multi-hundred-MB build artifacts that must never be committed.
 
 - [ ] **Step 4: Verify the binary build locally (macOS targets only need no extra toolchain download; Linux/Windows targets download a cross-compile toolchain on first use and need network access)**
 
