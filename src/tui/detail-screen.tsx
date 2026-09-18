@@ -27,15 +27,22 @@ export function DetailScreen({
   const [audit, setAudit] = useState<SkillAuditResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getSkillDetail(item.id), getSkillAudit(item.id)]).then(([d, a]) => {
-      if (cancelled) return
-      setDetail(d)
-      setAudit(a)
-      setLoading(false)
-    })
+    Promise.all([getSkillDetail(item.id), getSkillAudit(item.id)])
+      .then(([d, a]) => {
+        if (cancelled) return
+        setDetail(d)
+        setAudit(a)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load skill details')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
     return () => {
       cancelled = true
     }
@@ -62,6 +69,15 @@ export function DetailScreen({
           <Spinner type="dots" />
         </Text>
         <Text> Loading {item.name}…</Text>
+      </Box>
+    )
+  }
+
+  if (error) {
+    return (
+      <Box flexDirection="column">
+        <Text color="red">{error}</Text>
+        <FooterHint hints={[{ key: 'Esc', label: 'go back' }]} />
       </Box>
     )
   }

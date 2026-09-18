@@ -76,6 +76,22 @@ describe('DetailScreen', () => {
     expect(lastFrame()).toContain('pass')
   })
 
+  test('shows an error message when fetching fails', async () => {
+    fetchSpy.mockRestore()
+    fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation((async () => new Response('', { status: 500 })) as unknown as typeof fetch)
+
+    const { lastFrame } = render(
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} onInstalled={() => {}} />
+    )
+    await new Promise((r) => setTimeout(r, 10))
+    const frame = lastFrame()
+    expect(frame).not.toContain('Loading')
+    expect(frame).not.toContain('Security audit')
+    expect(frame).toContain('Request failed: 500')
+  })
+
   test('Enter installs the skill and calls onInstalled', async () => {
     let installedCalled = false
     const { stdin } = render(
