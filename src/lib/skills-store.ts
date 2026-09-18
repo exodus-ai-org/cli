@@ -73,6 +73,7 @@ export async function installSkill(
   detail: SkillDetail
 ): Promise<InstalledSkill> {
   const skillDir = join(skillsDir, detail.slug)
+  await rm(skillDir, { recursive: true, force: true })
   await mkdir(skillDir, { recursive: true })
 
   for (const file of detail.files) {

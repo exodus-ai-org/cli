@@ -11,6 +11,7 @@ import {
   type InstalledSkill
 } from '../lib/skills-store'
 import { App } from '../tui/app'
+import { reportError } from './report-error'
 
 interface JsonOpt {
   json?: boolean
@@ -21,48 +22,67 @@ export async function runSkillsSearch(
   query: string,
   opts: JsonOpt = {}
 ): Promise<SkillListItem[]> {
-  const { data } = await searchSkills(query)
-  if (opts.json) {
-    console.log(JSON.stringify(data, null, 2))
-  } else {
-    for (const item of data) {
-      console.log(`${item.id}  (${item.installs.toLocaleString()} installs)`)
+  try {
+    const { data } = await searchSkills(query)
+    if (opts.json) {
+      console.log(JSON.stringify(data, null, 2))
+    } else {
+      for (const item of data) {
+        console.log(`${item.id}  (${item.installs.toLocaleString()} installs)`)
+      }
     }
+    return data
+  } catch (err) {
+    reportError(err, opts.json)
+    return []
   }
-  return data
 }
 
 export async function runSkillsInstall(
   id: string,
   opts: JsonOpt = {}
-): Promise<InstalledSkill> {
-  const detail = await getSkillDetail(id)
-  const installed = await installSkill(opts.skillsDir ?? getSkillsDir(), detail)
-  if (opts.json) {
-    console.log(JSON.stringify(installed, null, 2))
-  } else {
-    console.log(`Installed "${installed.displayName}" (${installed.slug}).`)
+): Promise<InstalledSkill | null> {
+  try {
+    const detail = await getSkillDetail(id)
+    const installed = await installSkill(opts.skillsDir ?? getSkillsDir(), detail)
+    if (opts.json) {
+      console.log(JSON.stringify(installed, null, 2))
+    } else {
+      console.log(`Installed "${installed.displayName}" (${installed.slug}).`)
+    }
+    return installed
+  } catch (err) {
+    reportError(err, opts.json)
+    return null
   }
-  return installed
 }
 
 export async function runSkillsList(opts: JsonOpt = {}): Promise<InstalledSkill[]> {
-  const installed = await listInstalledSkills(opts.skillsDir ?? getSkillsDir())
-  if (opts.json) {
-    console.log(JSON.stringify(installed, null, 2))
-  } else if (installed.length === 0) {
-    console.log('No skills installed.')
-  } else {
-    for (const skill of installed) {
-      console.log(`${skill.slug}  ${skill.isActive ? '(active)' : '(inactive)'}`)
+  try {
+    const installed = await listInstalledSkills(opts.skillsDir ?? getSkillsDir())
+    if (opts.json) {
+      console.log(JSON.stringify(installed, null, 2))
+    } else if (installed.length === 0) {
+      console.log('No skills installed.')
+    } else {
+      for (const skill of installed) {
+        console.log(`${skill.slug}  ${skill.isActive ? '(active)' : '(inactive)'}`)
+      }
     }
+    return installed
+  } catch (err) {
+    reportError(err, opts.json)
+    return []
   }
-  return installed
 }
 
 export async function runSkillsUninstall(slug: string, opts: JsonOpt = {}): Promise<void> {
-  await uninstallSkill(opts.skillsDir ?? getSkillsDir(), slug)
-  if (!opts.json) console.log(`Uninstalled ${slug}.`)
+  try {
+    await uninstallSkill(opts.skillsDir ?? getSkillsDir(), slug)
+    if (!opts.json) console.log(`Uninstalled ${slug}.`)
+  } catch (err) {
+    reportError(err, opts.json)
+  }
 }
 
 export function registerSkillsCommand(program: Command): Command {

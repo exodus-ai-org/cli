@@ -27,6 +27,7 @@ export function DetailScreen({
   const [audit, setAudit] = useState<SkillAuditResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [installing, setInstalling] = useState(false)
+  const [installError, setInstallError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -55,10 +56,16 @@ export function DetailScreen({
     }
     if (key.return && detail && !installing) {
       setInstalling(true)
-      installSkill(skillsDir, detail).then(() => {
-        setInstalling(false)
-        onInstalled()
-      })
+      setInstallError(null)
+      installSkill(skillsDir, detail)
+        .then(() => {
+          setInstalling(false)
+          onInstalled()
+        })
+        .catch((err: unknown) => {
+          setInstalling(false)
+          setInstallError(err instanceof Error ? err.message : 'Install failed')
+        })
     }
   })
 
@@ -101,6 +108,8 @@ export function DetailScreen({
           <Text color="cyan">
             <Spinner type="dots" /> Installing…
           </Text>
+        ) : installError ? (
+          <Text color="red">Install failed: {installError}</Text>
         ) : (
           <Text>Press Enter to install.</Text>
         )}

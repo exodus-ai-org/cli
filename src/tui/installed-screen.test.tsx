@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { chmod, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { render } from 'ink-testing-library'
@@ -56,5 +56,19 @@ describe('InstalledScreen', () => {
     stdin.write('x')
     await new Promise((r) => setTimeout(r, 30))
     expect(lastFrame()).toContain('No skills installed')
+  })
+
+  test('shows an error message when toggling fails', async () => {
+    const lockPath = join(skillsDir, '.lock.json')
+    await chmod(lockPath, 0o444)
+
+    const { stdin, lastFrame } = render(<InstalledScreen skillsDir={skillsDir} />)
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write(' ')
+    await new Promise((r) => setTimeout(r, 30))
+    const frame = lastFrame()
+    expect(frame).toMatch(/permission|denied|EACCES/i)
+
+    await chmod(lockPath, 0o644)
   })
 })

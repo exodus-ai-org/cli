@@ -15,6 +15,7 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
   const [items, setItems] = useState<InstalledSkill[]>([])
   const [loading, setLoading] = useState(true)
   const [reloadToken, setReloadToken] = useState(0)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -36,11 +37,19 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
     const item = items[selectedIndex]
     if (!item) return
     if (input === ' ') {
-      toggleSkillActive(skillsDir, item.slug, !item.isActive).then(() =>
-        setReloadToken((t) => t + 1)
-      )
+      setActionError(null)
+      toggleSkillActive(skillsDir, item.slug, !item.isActive)
+        .then(() => setReloadToken((t) => t + 1))
+        .catch((err: unknown) =>
+          setActionError(err instanceof Error ? err.message : 'Failed to toggle skill')
+        )
     } else if (input === 'x') {
-      uninstallSkill(skillsDir, item.slug).then(() => setReloadToken((t) => t + 1))
+      setActionError(null)
+      uninstallSkill(skillsDir, item.slug)
+        .then(() => setReloadToken((t) => t + 1))
+        .catch((err: unknown) =>
+          setActionError(err instanceof Error ? err.message : 'Failed to uninstall skill')
+        )
     }
   })
 
@@ -54,6 +63,7 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
             {item.displayName} ({item.slug}) · {item.isActive ? 'active' : 'inactive'}
           </Text>
         ))}
+      {actionError && <Text color="red">{actionError}</Text>}
       <FooterHint
         hints={[
           { key: '↑/↓', label: 'move' },

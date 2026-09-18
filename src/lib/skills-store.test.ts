@@ -101,6 +101,25 @@ describe('installSkill', () => {
     )
   })
 
+  test('clears stale files from a previous install when the upstream file set shrinks', async () => {
+    await installSkill(skillsDir, sampleDetail)
+    expect(
+      existsSync(join(skillsDir, 'find-skills', 'examples', 'app-router.ts'))
+    ).toBe(true)
+
+    const shrunkDetail: SkillDetail = {
+      ...sampleDetail,
+      files: [{ path: 'SKILL.md', contents: '---\nname: Find Skills\n---\nUpdated body.' }]
+    }
+    await installSkill(skillsDir, shrunkDetail)
+
+    expect(
+      existsSync(join(skillsDir, 'find-skills', 'examples', 'app-router.ts'))
+    ).toBe(false)
+    const skillMd = await readFile(join(skillsDir, 'find-skills', 'SKILL.md'), 'utf-8')
+    expect(skillMd).toContain('Updated body.')
+  })
+
   test('does not write any file to disk outside skillsDir when rejecting', async () => {
     const maliciousDetail: SkillDetail = {
       ...sampleDetail,

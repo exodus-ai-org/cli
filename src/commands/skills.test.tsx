@@ -49,6 +49,40 @@ describe('runSkillsSearch', () => {
   })
 })
 
+describe('error handling', () => {
+  test('runSkillsSearch resolves to [] and prints {error, message} JSON on failure', async () => {
+    const spy = spyOn(client, 'searchSkills').mockRejectedValue(new Error('network down'))
+    const logSpy = spyOn(console, 'log').mockImplementation(() => {})
+
+    const results = await runSkillsSearch('react native', { json: true })
+
+    expect(results).toEqual([])
+    expect(process.exitCode).toBe(1)
+    const printed = logSpy.mock.calls.map((call) => call[0]).join('\n')
+    expect(printed).toContain('"error":"command_failed"')
+    expect(printed).toContain('network down')
+
+    spy.mockRestore()
+    logSpy.mockRestore()
+    process.exitCode = undefined
+  })
+
+  test('runSkillsInstall resolves to null and prints a plain error without --json', async () => {
+    const spy = spyOn(client, 'getSkillDetail').mockRejectedValue(new Error('not found'))
+    const errorSpy = spyOn(console, 'error').mockImplementation(() => {})
+
+    const installed = await runSkillsInstall('bad/skill/id', { skillsDir })
+
+    expect(installed).toBeNull()
+    expect(process.exitCode).toBe(1)
+    expect(errorSpy.mock.calls.map((call) => call[0]).join('\n')).toContain('not found')
+
+    spy.mockRestore()
+    errorSpy.mockRestore()
+    process.exitCode = undefined
+  })
+})
+
 describe('runSkillsInstall + runSkillsList + runSkillsUninstall', () => {
   test('install writes to the given skills dir and list/uninstall reflect it', async () => {
     const detailSpy = spyOn(client, 'getSkillDetail').mockResolvedValue({
@@ -64,7 +98,7 @@ describe('runSkillsInstall + runSkillsList + runSkillsUninstall', () => {
       json: true,
       skillsDir
     } as never)
-    expect(installed.slug).toBe('find-skills')
+    expect(installed?.slug).toBe('find-skills')
 
     const listed = await runSkillsList({ json: true, skillsDir } as never)
     expect(listed).toHaveLength(1)

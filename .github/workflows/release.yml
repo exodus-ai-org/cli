@@ -27,8 +27,6 @@ jobs:
 
       - run: bun test
 
-      - run: bun run build:binaries
-
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

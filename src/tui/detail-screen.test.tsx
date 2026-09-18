@@ -6,6 +6,7 @@ import { render } from 'ink-testing-library'
 import React from 'react'
 
 import type { SkillListItem } from '../lib/skills-sh-client'
+import * as store from '../lib/skills-store'
 import { DetailScreen } from './detail-screen'
 
 const item: SkillListItem = {
@@ -106,5 +107,23 @@ describe('DetailScreen', () => {
     stdin.write('\r')
     await new Promise((r) => setTimeout(r, 10))
     expect(installedCalled).toBe(true)
+  })
+
+  test('shows an inline install error and does not hang on Installing… when install fails', async () => {
+    const installSpy = jest
+      .spyOn(store, 'installSkill')
+      .mockRejectedValue(new Error('disk full'))
+
+    const { stdin, lastFrame } = render(
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} onInstalled={() => {}} />
+    )
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write('\r')
+    await new Promise((r) => setTimeout(r, 20))
+    const frame = lastFrame()
+    expect(frame).toContain('Install failed')
+    expect(frame).not.toContain('Installing…')
+
+    installSpy.mockRestore()
   })
 })

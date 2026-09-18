@@ -1,28 +1,34 @@
 import type { Command } from 'commander'
 
 import { checkForUpdate, DIST_CHANNEL, type UpdateCheckResult } from '../lib/updater'
+import { reportError } from './report-error'
 
-export async function runUpdate(opts: { check?: boolean } = {}): Promise<UpdateCheckResult> {
-  const result = await checkForUpdate()
+export async function runUpdate(opts: { check?: boolean } = {}): Promise<UpdateCheckResult | null> {
+  try {
+    const result = await checkForUpdate()
 
-  if (!result.updateAvailable) {
-    console.log(`exodus-cli is up to date (${result.current}).`)
+    if (!result.updateAvailable) {
+      console.log(`exodus-cli is up to date (${result.current}).`)
+      return result
+    }
+
+    console.log(`Update available: ${result.current} → ${result.latest}`)
+
+    if (opts.check) return result
+
+    if (DIST_CHANNEL === 'npm') {
+      console.log('Run: npm install -g exodus-cli@latest')
+    } else {
+      console.log(
+        'Automatic binary self-update isn\'t wired up in this build yet — download the latest release from https://github.com/exodus-ai-org/exodus-cli/releases/latest'
+      )
+    }
+
     return result
+  } catch (err) {
+    reportError(err)
+    return null
   }
-
-  console.log(`Update available: ${result.current} → ${result.latest}`)
-
-  if (opts.check) return result
-
-  if (DIST_CHANNEL === 'npm') {
-    console.log('Run: npm install -g exodus-cli@latest')
-  } else {
-    console.log(
-      'Automatic binary self-update isn\'t wired up in this build yet — download the latest release from https://github.com/exodus-ai-org/exodus-cli/releases/latest'
-    )
-  }
-
-  return result
 }
 
 export function registerUpdateCommand(program: Command): void {
