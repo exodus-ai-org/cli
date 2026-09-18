@@ -27,8 +27,16 @@ of that migration.
 ## Goals
 
 - `exodus open` — launch the installed Exodus desktop app, macOS/Windows/Linux.
-- `exodus update` — check for and apply a newer CLI version, working correctly
-  whether the running CLI came from npm or a compiled binary.
+- `exodus update` — check whether a newer CLI version is available and tell
+  the user how to get it (channel-appropriate: the `npm install` command on
+  the npm channel, the release URL on the binary channel). **v1 only
+  checks — it does not apply the update itself.** (Descoped during
+  implementation, ratified here: an unattended `npm install -g` or an
+  atomic binary self-replace is real, separately-scoped work with its own
+  failure modes — bricking a user's install on a bad replace is worse than
+  asking them to run one command. `pickReleaseAssetName()` in `updater.ts`
+  already computes the right asset name per platform for whenever this is
+  built; `applyUpdate()` is not implemented in v1.)
 - `exodus help` / `--help` — standard Commander help output.
 - `exodus skills` — interactive TUI: browse/search skills.sh, view a skill's
   README + security audit, install/uninstall/toggle.
@@ -57,6 +65,9 @@ of that migration.
 - Skill authoring/publishing workflows — this CLI only *consumes* skills.sh,
   it doesn't help anyone publish to it.
 - Telemetry/analytics.
+- `exodus update` applying the update itself (unattended `npm install -g`,
+  or atomic binary self-replace) — see Goals. v1 checks and tells the user
+  what to run; it doesn't run it for them.
 
 ## Decisions (and rejected alternatives)
 
@@ -154,7 +165,9 @@ of that migration.
   first, lockfile last (same crash-safety property as the original).
 - **`updater.ts`** — `getCurrentVersion()`, `getLatestNpmVersion()` (fetch
   `https://registry.npmjs.org/exodus-cli/latest`), `getLatestRelease()`
-  (GitHub Releases API), `applyUpdate()` (branches on `DIST_CHANNEL`).
+  (GitHub Releases API), `pickReleaseAssetName()` (platform/arch → the
+  binary-release asset name, ready for whenever self-apply is built).
+  No `applyUpdate()` in v1 — see Goals.
 - **`open-app.ts`** — `openExodusApp()`, one function per platform branch
   (`process.platform`), returns a typed result (`opened | not-found`) rather
   than throwing, so callers can print a consistent "not installed, download
@@ -168,8 +181,8 @@ command files, so behavior stays identical between the TUI and the scripted
 path.
 
 - `open.ts` → `open-app.ts`
-- `update.ts` → `updater.ts`, with `--check` (report only) and `--yes`
-  (skip confirmation) flags
+- `update.ts` → `updater.ts`, with `--check` (report only — the only mode
+  in v1, since there's no self-apply to skip a confirmation for)
 - `skills.ts` → registers `skills` (no subcommand → launches the Ink app),
   plus `skills search/install/list/uninstall` as plain actions with a
   `--json` flag on every read command
@@ -211,12 +224,10 @@ a third screen pushed on top (Enter from either list), showing the skill's
 - **Filesystem errors during install** (permissions, disk full): caught
   per-skill, lockfile is never written for a partially-extracted skill —
   same ordering guarantee as `universal-client`'s implementation.
-- **`exodus update` on a compiled binary**: downloads the release asset to a
-  temp path first, verifies it's non-empty and executable, *then* renames
-  over `process.execPath` — never leaves the running binary half-replaced.
-  If the asset for the current `platform`/`arch` doesn't exist in the
-  release, reports a clear "no build for your platform" error instead of
-  guessing.
+- **`exodus update`**: v1 only checks (see Goals) — it prints the newer
+  version and the channel-appropriate next step (the `npm install` command,
+  or the release URL) and exits. No download, no self-replace, so there's
+  no half-replaced-binary failure mode to guard against in v1.
 - **`exodus open` when the app isn't installed**: never throws to the user
   as a stack trace — always resolves to a one-line "Exodus isn't installed.
   Download it: https://exodus.yancey.app" message.
@@ -246,3 +257,9 @@ a third screen pushed on top (Enter from either list), showing the skill's
   `skills-store.ts` or either UI layer.
 - Homebrew tap / other packaging formats are a v2 concern if the compiled
   binary distribution proves popular.
+- `applyUpdate()` (self-apply for `exodus update`) is a natural v1.1: the
+  npm side is a confirmed `npm install -g exodus-cli@latest` spawn, the
+  binary side is `pickReleaseAssetName()` (already built and tested) plus
+  a download-to-temp-then-atomic-rename-over-`process.execPath` step,
+  documented in enough detail in earlier drafts of this spec to implement
+  directly when it's prioritized.
