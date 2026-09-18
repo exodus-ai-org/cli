@@ -1972,7 +1972,7 @@ import { join } from 'node:path'
 import { render } from 'ink-testing-library'
 import React from 'react'
 
-import { installSkill } from '../lib/skills-store'
+import { installSkill, readLockfile } from '../lib/skills-store'
 import { InstalledScreen } from './installed-screen'
 
 let skillsDir: string
@@ -2007,6 +2007,23 @@ describe('InstalledScreen', () => {
     expect(lastFrame()).toContain('No skills installed')
     await rm(emptyDir, { recursive: true, force: true })
   })
+
+  test('space toggles the selected skill\'s isActive and persists it', async () => {
+    const { stdin } = render(<InstalledScreen skillsDir={skillsDir} />)
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write(' ')
+    await new Promise((r) => setTimeout(r, 30))
+    const lock = await readLockfile(skillsDir)
+    expect(lock.skills['find-skills']?.isActive).toBe(false)
+  })
+
+  test('x uninstalls the selected skill', async () => {
+    const { stdin, lastFrame } = render(<InstalledScreen skillsDir={skillsDir} />)
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write('x')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(lastFrame()).toContain('No skills installed')
+  })
 })
 ```
 
@@ -2020,11 +2037,16 @@ Expected: FAIL — `Cannot find module './installed-screen'`
 Create `src/tui/installed-screen.tsx`:
 
 ```tsx
-import { Box, Text } from 'ink'
+import { Box, Text, useInput } from 'ink'
 import React, { useEffect, useState } from 'react'
 
 import { getSkillsDir } from '../lib/paths'
-import { listInstalledSkills, type InstalledSkill } from '../lib/skills-store'
+import {
+  listInstalledSkills,
+  toggleSkillActive,
+  uninstallSkill,
+  type InstalledSkill
+} from '../lib/skills-store'
 import { FooterHint } from './footer-hint'
 import { useListNav } from './use-list-nav'
 
@@ -2047,8 +2069,18 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
     }
   }, [skillsDir, reloadToken])
 
-  const { selectedIndex } = useListNav(items, {
-    onSelect: () => setReloadToken((t) => t + 1)
+  const { selectedIndex } = useListNav(items, {})
+
+  useInput((input) => {
+    const item = items[selectedIndex]
+    if (!item) return
+    if (input === ' ') {
+      toggleSkillActive(skillsDir, item.slug, !item.isActive).then(() =>
+        setReloadToken((t) => t + 1)
+      )
+    } else if (input === 'x') {
+      uninstallSkill(skillsDir, item.slug).then(() => setReloadToken((t) => t + 1))
+    }
   })
 
   return (
@@ -2064,6 +2096,8 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
       <FooterHint
         hints={[
           { key: '↑/↓', label: 'move' },
+          { key: 'Space', label: 'toggle active' },
+          { key: 'x', label: 'uninstall' },
           { key: 'Esc', label: 'quit' }
         ]}
       />
@@ -2075,7 +2109,7 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `bun test src/tui/installed-screen.test.tsx`
-Expected: `2 pass`, 0 fail.
+Expected: `4 pass`, 0 fail.
 
 - [ ] **Step 5: Typecheck and commit**
 
