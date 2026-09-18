@@ -1,8 +1,13 @@
-import { Box, Text } from 'ink'
+import { Box, Text, useInput } from 'ink'
 import React, { useEffect, useState } from 'react'
 
 import { getSkillsDir } from '../lib/paths'
-import { listInstalledSkills, type InstalledSkill } from '../lib/skills-store'
+import {
+  listInstalledSkills,
+  toggleSkillActive,
+  uninstallSkill,
+  type InstalledSkill
+} from '../lib/skills-store'
 import { FooterHint } from './footer-hint'
 import { useListNav } from './use-list-nav'
 
@@ -25,8 +30,18 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
     }
   }, [skillsDir, reloadToken])
 
-  const { selectedIndex } = useListNav(items, {
-    onSelect: () => setReloadToken((t) => t + 1)
+  const { selectedIndex } = useListNav(items, {})
+
+  useInput((input) => {
+    const item = items[selectedIndex]
+    if (!item) return
+    if (input === ' ') {
+      toggleSkillActive(skillsDir, item.slug, !item.isActive).then(() =>
+        setReloadToken((t) => t + 1)
+      )
+    } else if (input === 'x') {
+      uninstallSkill(skillsDir, item.slug).then(() => setReloadToken((t) => t + 1))
+    }
   })
 
   return (
@@ -42,6 +57,8 @@ export function InstalledScreen({ skillsDir = getSkillsDir() }: { skillsDir?: st
       <FooterHint
         hints={[
           { key: '↑/↓', label: 'move' },
+          { key: 'Space', label: 'toggle active' },
+          { key: 'x', label: 'uninstall' },
           { key: 'Esc', label: 'quit' }
         ]}
       />

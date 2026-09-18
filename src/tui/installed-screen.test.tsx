@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { render } from 'ink-testing-library'
 import React from 'react'
 
-import { installSkill } from '../lib/skills-store'
+import { installSkill, readLockfile } from '../lib/skills-store'
 import { InstalledScreen } from './installed-screen'
 
 let skillsDir: string
@@ -39,5 +39,22 @@ describe('InstalledScreen', () => {
     await new Promise((r) => setTimeout(r, 10))
     expect(lastFrame()).toContain('No skills installed')
     await rm(emptyDir, { recursive: true, force: true })
+  })
+
+  test('space toggles the selected skill\'s isActive and persists it', async () => {
+    const { stdin } = render(<InstalledScreen skillsDir={skillsDir} />)
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write(' ')
+    await new Promise((r) => setTimeout(r, 30))
+    const lock = await readLockfile(skillsDir)
+    expect(lock.skills['find-skills']?.isActive).toBe(false)
+  })
+
+  test('x uninstalls the selected skill', async () => {
+    const { stdin, lastFrame } = render(<InstalledScreen skillsDir={skillsDir} />)
+    await new Promise((r) => setTimeout(r, 10))
+    stdin.write('x')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(lastFrame()).toContain('No skills installed')
   })
 })
