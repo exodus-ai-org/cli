@@ -90,7 +90,8 @@ export function registerSkillsCommand(program: Command): Command {
     .command('skills')
     .description('Browse and manage skills.sh skills')
     .action(() => {
-      render(<App />)
+      // Take over the terminal like vim does and hand it back untouched on exit.
+      render(<App />, { alternateScreen: true })
     })
 
   skills

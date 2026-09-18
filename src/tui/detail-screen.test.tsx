@@ -68,9 +68,19 @@ afterEach(async () => {
 })
 
 describe('DetailScreen', () => {
+  test('frames the skill in a panel with its install count', async () => {
+    const { lastFrame } = render(
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} />
+    )
+    await new Promise((r) => setTimeout(r, 10))
+    const lines = Bun.stripANSI(lastFrame() ?? '').split('\n')
+    expect(lines[0]).toMatch(/^╭─+╮$/)
+    expect(lines.join('\n')).toContain('24,531 installs')
+  })
+
   test('renders the audit summary after mount', async () => {
     const { lastFrame } = render(
-      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} onInstalled={() => {}} />
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} />
     )
     await new Promise((r) => setTimeout(r, 10))
     expect(lastFrame()).toContain('Socket')
@@ -84,7 +94,7 @@ describe('DetailScreen', () => {
       .mockImplementation((async () => new Response('', { status: 500 })) as unknown as typeof fetch)
 
     const { lastFrame } = render(
-      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} onInstalled={() => {}} />
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} />
     )
     await new Promise((r) => setTimeout(r, 10))
     const frame = lastFrame()
@@ -93,20 +103,31 @@ describe('DetailScreen', () => {
     expect(frame).toContain('Request failed: 500')
   })
 
-  test('Enter installs the skill and calls onInstalled', async () => {
-    let installedCalled = false
-    const { stdin } = render(
-      <DetailScreen
-        item={item}
-        skillsDir={skillsDir}
-        onBack={() => {}}
-        onInstalled={() => (installedCalled = true)}
-      />
+  test('Enter installs the skill and confirms it on screen instead of leaving', async () => {
+    let backCalled = false
+    const { stdin, lastFrame } = render(
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => (backCalled = true)} />
     )
     await new Promise((r) => setTimeout(r, 10))
     stdin.write('\r')
+    await new Promise((r) => setTimeout(r, 30))
+    const frame = Bun.stripANSI(lastFrame() ?? '')
+    expect(frame).toContain('✓ Installed find-skills')
+    expect(frame).not.toContain('Press Enter to install')
+    expect(backCalled).toBe(false)
+    expect((await store.readLockfile(skillsDir)).skills['find-skills']).toBeDefined()
+  })
+
+  test('a second Enter after installing does not install again', async () => {
+    const installSpy = jest.spyOn(store, 'installSkill')
+    const { stdin } = render(<DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} />)
     await new Promise((r) => setTimeout(r, 10))
-    expect(installedCalled).toBe(true)
+    stdin.write('\r')
+    await new Promise((r) => setTimeout(r, 30))
+    stdin.write('\r')
+    await new Promise((r) => setTimeout(r, 30))
+    expect(installSpy).toHaveBeenCalledTimes(1)
+    installSpy.mockRestore()
   })
 
   test('shows an inline install error and does not hang on Installing… when install fails', async () => {
@@ -115,7 +136,7 @@ describe('DetailScreen', () => {
       .mockRejectedValue(new Error('disk full'))
 
     const { stdin, lastFrame } = render(
-      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} onInstalled={() => {}} />
+      <DetailScreen item={item} skillsDir={skillsDir} onBack={() => {}} />
     )
     await new Promise((r) => setTimeout(r, 10))
     stdin.write('\r')

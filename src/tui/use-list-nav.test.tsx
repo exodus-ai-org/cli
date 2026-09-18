@@ -19,6 +19,35 @@ function Harness({ items, onSelect }: { items: string[]; onSelect: (item: string
 const ESC = String.fromCharCode(27)
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve))
 
+const DOWN = `${ESC}[B`
+const UP = `${ESC}[A`
+const PAGE_UP = `${ESC}[5~`
+const PAGE_DOWN = `${ESC}[6~`
+const HOME = `${ESC}[H`
+const END = `${ESC}[F`
+
+// Sends every key before yielding, so a test also proves that presses landing
+// in the same tick accumulate instead of overwriting each other.
+async function press(stdin: { write: (data: string) => void }, ...keys: string[]) {
+  for (const key of keys) stdin.write(key)
+  await flush()
+}
+
+function WindowHarness({
+  items,
+  visibleCount,
+  resetKey
+}: {
+  items: string[]
+  visibleCount: number
+  resetKey?: unknown
+}) {
+  const { selectedIndex, windowStart } = useListNav(items, { visibleCount, resetKey })
+  return <Text>{`index:${selectedIndex} start:${windowStart}`}</Text>
+}
+
+const TEN = Array.from({ length: 10 }, (_, i) => `item-${i}`)
+
 describe('useListNav', () => {
   test('starts at index 0', () => {
     const { lastFrame } = render(<Harness items={['a', 'b', 'c']} onSelect={() => {}} />)
@@ -49,5 +78,72 @@ describe('useListNav', () => {
     stdin.write('\r')
     await flush()
     expect(selected).toBe('b')
+  })
+})
+
+describe('useListNav windowing', () => {
+  test('the window follows the selection down and back up', async () => {
+    const { lastFrame, stdin } = render(<WindowHarness items={TEN} visibleCount={3} />)
+    await press(stdin, DOWN, DOWN, DOWN)
+    expect(lastFrame()).toBe('index:3 start:1')
+    await press(stdin, UP, UP, UP)
+    expect(lastFrame()).toBe('index:0 start:0')
+  })
+
+  test('Page Down and Page Up move the selection by a full window', async () => {
+    const { lastFrame, stdin } = render(<WindowHarness items={TEN} visibleCount={3} />)
+    await press(stdin, PAGE_DOWN, PAGE_DOWN)
+    expect(lastFrame()).toBe('index:6 start:4')
+    await press(stdin, PAGE_UP)
+    expect(lastFrame()).toBe('index:3 start:3')
+  })
+
+  test('Page Down stops at the last item', async () => {
+    const { lastFrame, stdin } = render(<WindowHarness items={TEN} visibleCount={4} />)
+    await press(stdin, PAGE_DOWN, PAGE_DOWN, PAGE_DOWN)
+    expect(lastFrame()).toBe('index:9 start:6')
+  })
+
+  test('End jumps to the last item and Home back to the first', async () => {
+    const { lastFrame, stdin } = render(<WindowHarness items={TEN} visibleCount={3} />)
+    await press(stdin, END)
+    expect(lastFrame()).toBe('index:9 start:7')
+    await press(stdin, HOME)
+    expect(lastFrame()).toBe('index:0 start:0')
+  })
+
+  test('without visibleCount every item counts as visible and the window never scrolls', async () => {
+    const { lastFrame, stdin } = render(<Harness items={['a', 'b', 'c']} onSelect={() => {}} />)
+    await press(stdin, END)
+    expect(lastFrame()).toBe('index:2')
+  })
+
+  test('the selection is clamped when the list shrinks beneath it', async () => {
+    const { lastFrame, stdin, rerender } = render(<WindowHarness items={TEN} visibleCount={3} />)
+    await press(stdin, END)
+    rerender(<WindowHarness items={TEN.slice(0, 4)} visibleCount={3} />)
+    await flush()
+    expect(lastFrame()).toBe('index:3 start:1')
+  })
+
+  test('Enter picks the clamped item after the list shrinks', async () => {
+    let selected: string | undefined
+    const onSelect = (item: string) => (selected = item)
+    const { stdin, rerender } = render(<Harness items={['a', 'b', 'c', 'd']} onSelect={onSelect} />)
+    await press(stdin, END)
+    rerender(<Harness items={['a', 'b']} onSelect={onSelect} />)
+    await flush()
+    await press(stdin, '\r')
+    expect(selected).toBe('b')
+  })
+
+  test('changing resetKey returns to the top', async () => {
+    const { lastFrame, stdin, rerender } = render(
+      <WindowHarness items={TEN} visibleCount={3} resetKey="first" />
+    )
+    await press(stdin, END)
+    rerender(<WindowHarness items={TEN} visibleCount={3} resetKey="second" />)
+    await flush()
+    expect(lastFrame()).toBe('index:0 start:0')
   })
 })
