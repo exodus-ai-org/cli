@@ -1,4 +1,6 @@
 import type { Command } from 'commander'
+import { render } from 'ink'
+import React from 'react'
 
 import { getSkillDetail, searchSkills, type SkillListItem } from '../lib/skills-sh-client'
 import { getSkillsDir } from '../lib/paths'
@@ -8,6 +10,7 @@ import {
   uninstallSkill,
   type InstalledSkill
 } from '../lib/skills-store'
+import { App } from '../tui/app'
 
 interface JsonOpt {
   json?: boolean
@@ -63,7 +66,12 @@ export async function runSkillsUninstall(slug: string, opts: JsonOpt = {}): Prom
 }
 
 export function registerSkillsCommand(program: Command): Command {
-  const skills = program.command('skills').description('Browse and manage skills.sh skills')
+  const skills = program
+    .command('skills')
+    .description('Browse and manage skills.sh skills')
+    .action(() => {
+      render(<App />)
+    })
 
   skills
     .command('search <query>')
