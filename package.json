@@ -4,14 +4,16 @@
   "module": "index.ts",
   "type": "module",
   "bin": {
-    "exodus": "./index.ts"
+    "exodus": "./dist/index.js"
   },
+  "files": ["dist"],
   "scripts": {
     "dev": "bun run index.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "build:npm": "bun build ./index.ts --outdir dist --target bun --format esm && chmod +x dist/index.js",
-    "build:binaries": "bash scripts/build-binaries.sh"
+    "build:binaries": "bash scripts/build-binaries.sh",
+    "prepublishOnly": "bun run build:npm"
   },
   "dependencies": {
     "commander": "15.0.0",
@@ -21,9 +23,17 @@
     "ink-spinner": "5.0.0"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^11.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/bun": "latest",
     "@types/react": "19.3.0",
     "ink-testing-library": "4.0.0",
+    "react-devtools-core": "^8.0.0",
+    "semantic-release": "^25.0.9",
     "typescript": "5.9.3"
   }
 }
