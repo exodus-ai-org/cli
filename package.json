@@ -7,7 +7,7 @@
   "module": "index.ts",
   "type": "module",
   "bin": {
-    "exodus": "./dist/index.js"
+    "exodus": "dist/index.js"
   },
   "files": [
     "dist"
