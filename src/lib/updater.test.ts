@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test'
 
+import { version as packageVersion } from '../../package.json'
 import {
   checkForUpdate,
   getCurrentVersion,
@@ -11,7 +12,10 @@ import {
 
 describe('getCurrentVersion', () => {
   test('reads the version from package.json', () => {
-    expect(getCurrentVersion()).toBe('0.1.0')
+    // Compared against the real package.json's version rather than a
+    // hardcoded string, so this doesn't break on every release's version
+    // bump (it broke exactly this way once already, see git history).
+    expect(getCurrentVersion()).toBe(packageVersion)
   })
 })
 
