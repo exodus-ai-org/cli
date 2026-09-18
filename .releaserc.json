@@ -12,7 +12,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "bun run build:binaries"
+        "prepareCmd": "bun run build:npm && bun run build:binaries"
       }
     ],
     [
