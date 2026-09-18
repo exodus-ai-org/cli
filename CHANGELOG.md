@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/exodus-ai-org/cli/compare/v1.0.0...v1.0.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* stop hardcoding the expected version in getCurrentVersion's test ([0ccc2d6](https://github.com/exodus-ai-org/cli/commit/0ccc2d66748a90b6335ad0fae2c72cc9fecc07f2))
+
 # 1.0.0 (2026-09-18)
 
 
