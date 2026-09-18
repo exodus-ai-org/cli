@@ -2518,8 +2518,10 @@ Expected: the Ink TUI renders in the terminal, showing the Discover tab with a s
 
 - [ ] **Step 4: Commit**
 
+`src/cli.ts` is unchanged by this task (Step 1 confirmed its extensionless import needs no edit) — only the renamed files are staged:
+
 ```bash
-git add src/cli.ts src/commands/skills.tsx src/commands/skills.test.tsx
+git add src/commands/skills.tsx src/commands/skills.test.tsx
 git commit -m "feat: launch the Ink TUI from exodus skills with no subcommand"
 ```
 
