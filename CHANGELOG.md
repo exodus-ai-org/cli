@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/exodus-ai-org/cli/compare/v1.0.1...v1.0.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* drop the leading ./ from the bin field's path ([d595033](https://github.com/exodus-ai-org/cli/commit/d59503305cc7aeabd08c85c62c01f6cc42c847e2))
+
 ## [1.0.1](https://github.com/exodus-ai-org/cli/compare/v1.0.0...v1.0.1) (2026-09-18)
 
 
