@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/exodus-ai-org/cli/compare/v1.0.2...v1.1.0) (2026-09-18)
+
+
+### Features
+
+* **tui:** redesign the skills browser with panels, windowed lists and full-screen mode ([2072c30](https://github.com/exodus-ai-org/cli/commit/2072c308da72bac116a68b73b6989b5a6aa4724d))
+
 ## [1.0.2](https://github.com/exodus-ai-org/cli/compare/v1.0.1...v1.0.2) (2026-09-18)
 
 
