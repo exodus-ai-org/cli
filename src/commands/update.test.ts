@@ -36,6 +36,9 @@ describe('runUpdate', () => {
 
     spy.mockRestore()
     errorSpy.mockRestore()
-    process.exitCode = undefined
+    // Bun (unlike Node) doesn't clear process.exitCode when set to
+    // `undefined` — it must be reset to a real 0 or the whole `bun test`
+    // process exits non-zero even though every test passed.
+    process.exitCode = 0
   })
 })
