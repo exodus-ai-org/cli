@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/exodus-ai-org/cli/compare/v1.1.0...v1.2.0) (2026-09-19)
+
+
+### Features
+
+* **update:** check for a new version on every launch ([ca61aa8](https://github.com/exodus-ai-org/cli/commit/ca61aa8085321892eca2bf21fd96f030483321ad))
+
 # [1.1.0](https://github.com/exodus-ai-org/cli/compare/v1.0.2...v1.1.0) (2026-09-18)
 
 
