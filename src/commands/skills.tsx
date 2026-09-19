@@ -10,6 +10,7 @@ import {
   uninstallSkill,
   type InstalledSkill
 } from '../lib/skills-store'
+import { getUpdateBadge } from '../lib/update-notifier'
 import { App } from '../tui/app'
 import { reportError } from './report-error'
 
@@ -89,9 +90,12 @@ export function registerSkillsCommand(program: Command): Command {
   const skills = program
     .command('skills')
     .description('Browse and manage skills.sh skills')
-    .action(() => {
+    .action(async () => {
+      // Read from the cache the last launch populated — never block the TUI on
+      // the network. The full one-liner still prints to stderr on exit.
+      const updateNotice = await getUpdateBadge()
       // Take over the terminal like vim does and hand it back untouched on exit.
-      render(<App />, { alternateScreen: true })
+      render(<App updateNotice={updateNotice} />, { alternateScreen: true })
     })
 
   skills

@@ -6,6 +6,7 @@ import {
   getCurrentVersion,
   getLatestNpmVersion,
   getLatestRelease,
+  getLatestVersion,
   isNewerVersion,
   pickReleaseAssetName
 } from './updater'
@@ -98,6 +99,18 @@ describe('checkForUpdate', () => {
     )
     const result = await checkForUpdate()
     expect(result.updateAvailable).toBe(false)
+    fetchSpy.mockRestore()
+  })
+})
+
+describe('getLatestVersion', () => {
+  test('returns the bare npm version on the npm channel', async () => {
+    // DIST_CHANNEL defaults to 'npm' in dev/test, so this resolves through
+    // getLatestNpmVersion, which we stub via fetch.
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ version: '9.9.9' }), { status: 200 })
+    )
+    expect(await getLatestVersion()).toBe('9.9.9')
     fetchSpy.mockRestore()
   })
 })

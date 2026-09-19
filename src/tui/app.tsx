@@ -10,7 +10,13 @@ import { Rule } from './panel'
 
 type Tab = 'discover' | 'installed'
 
-export function App({ skillsDir = getSkillsDir() }: { skillsDir?: string }) {
+export function App({
+  skillsDir = getSkillsDir(),
+  updateNotice = null
+}: {
+  skillsDir?: string
+  updateNotice?: string | null
+}) {
   const [tab, setTab] = useState<Tab>('discover')
   const [selected, setSelected] = useState<SkillListItem | null>(null)
   const { exit } = useApp()
@@ -32,9 +38,19 @@ export function App({ skillsDir = getSkillsDir() }: { skillsDir?: string }) {
           <TabLabel label="Discover" active={tab === 'discover'} />
           <TabLabel label="Installed" active={tab === 'installed'} />
         </Box>
-        <Text dimColor italic>
-          Tab to switch
-        </Text>
+        <Box>
+          {updateNotice ? (
+            <Box marginRight={1}>
+              <Text color="yellow" wrap="truncate-end">
+                {updateNotice}
+              </Text>
+              <Text dimColor> ·</Text>
+            </Box>
+          ) : null}
+          <Text dimColor italic>
+            Tab to switch
+          </Text>
+        </Box>
       </Box>
       <Rule />
       {selected ? (

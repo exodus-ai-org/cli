@@ -76,3 +76,43 @@ describe('App', () => {
     await waitForText(lastFrame, 'No skills installed')
   })
 })
+
+describe('App update badge', () => {
+  test('shows a pending update in the tab bar', async () => {
+    const { lastFrame } = render(
+      <App skillsDir={skillsDir} updateNotice="Update available: 1.1.0" />
+    )
+    const frame = await waitForText(lastFrame, 'No skills found')
+    expect(frame.split('\n')[0]).toContain('Update available: 1.1.0')
+  })
+
+  test('keeps the Tab hint visible alongside the badge', async () => {
+    const { lastFrame } = render(
+      <App skillsDir={skillsDir} updateNotice="Update available: 1.1.0" />
+    )
+    const frame = await waitForText(lastFrame, 'No skills found')
+    expect(frame.split('\n')[0]).toContain('Tab to switch')
+  })
+
+  test('separates the badge from the Tab hint the way the footer does', async () => {
+    const { lastFrame } = render(
+      <App skillsDir={skillsDir} updateNotice="Update available: 1.1.0" />
+    )
+    const frame = await waitForText(lastFrame, 'No skills found')
+    expect(frame.split('\n')[0]).toContain('Update available: 1.1.0 · Tab to switch')
+  })
+
+  test('shows nothing extra when the CLI is already current', async () => {
+    const { lastFrame } = render(<App skillsDir={skillsDir} />)
+    const frame = await waitForText(lastFrame, 'No skills found')
+    expect(frame).not.toContain('Update available')
+  })
+
+  test('does not steal a row from the screens below it', async () => {
+    const { lastFrame } = render(
+      <App skillsDir={skillsDir} updateNotice="Update available: 1.1.0" />
+    )
+    const lines = (await waitForText(lastFrame, 'No skills found')).split('\n')
+    expect(lines).toHaveLength(terminalRows())
+  })
+})

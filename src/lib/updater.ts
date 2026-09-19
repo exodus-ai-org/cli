@@ -61,12 +61,16 @@ export type UpdateCheckResult =
   | { updateAvailable: false; current: string }
   | { updateAvailable: true; current: string; latest: string }
 
+/** The newest published version for whichever channel this build ships on. */
+export async function getLatestVersion(): Promise<string> {
+  return DIST_CHANNEL === 'npm'
+    ? await getLatestNpmVersion()
+    : (await getLatestRelease()).tag_name.replace(/^v/, '')
+}
+
 export async function checkForUpdate(): Promise<UpdateCheckResult> {
   const current = getCurrentVersion()
-  const latest =
-    DIST_CHANNEL === 'npm'
-      ? await getLatestNpmVersion()
-      : (await getLatestRelease()).tag_name.replace(/^v/, '')
+  const latest = await getLatestVersion()
   if (!isNewerVersion(current, latest)) {
     return { updateAvailable: false, current }
   }
